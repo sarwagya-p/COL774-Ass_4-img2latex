@@ -75,7 +75,7 @@ class DecoderRNN(nn.Module):
         return output, hidden
     
 class EncoderDecoder(nn.Module):
-    def __init__(self, encoder, decoder):
+    def __init__(self, encoder=None, decoder=None):
         super(EncoderDecoder, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
