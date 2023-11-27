@@ -27,7 +27,7 @@ EOS = "<eos>"
 
 PAD_IDX = token_to_idx[PAD]
 
-def load_model(model_path):
+def load_model(model_path, eval = True):
     hparams = {
         "lr" : 0.001,
         "batch_size" : 64,
@@ -53,7 +53,12 @@ def load_model(model_path):
     state_dict = torch.load(model_path, map_location=torch.device(device))
     torch.save((state_dict), model_backup_path)
     model.load_state_dict(state_dict)
-    model.train()
+
+    if eval:
+        model.eval()
+    else:
+        model.train()
+        
     print(f"LOADED MODEL to {device}")
 
     return model
