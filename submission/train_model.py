@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from EncoderDecoder import EncoderCNN, DecoderRNN, EncoderDecoder
 from data_utils import Img2LatexDataset
 import pickle
 
@@ -10,10 +11,10 @@ print(f"Using device: {device}")
 if device == "cuda":
     torch.cuda.empty_cache()
 
-with open("model/tokens.pkl", "rb") as f:
+with open("./models/tokens.pkl", "rb") as f:
     tokens = pickle.load(f)
 
-with open("model/token_to_idx.pkl", "rb") as f:
+with open("./models/token_to_idx.pkl", "rb") as f:
     token_to_idx = pickle.load(f)
 
 model_path = "./models/model.pt"
@@ -26,6 +27,36 @@ EOS = "<eos>"
 
 PAD_IDX = token_to_idx[PAD]
 
+def load_model(model_path):
+    hparams = {
+        "lr" : 0.001,
+        "batch_size" : 64,
+        "epochs" : 10
+    }
+
+    channel_seq = [3, 32, 64, 128, 256, 512]
+    num_conv_pool = 5
+
+    enc_layers = []
+
+    for i in range(num_conv_pool):
+        enc_layers.append(('conv2d', {'in_channels': channel_seq[i], 'out_channels': channel_seq[i+1], 'kernel_size': 5}))
+        enc_layers.append(('maxpool2d', {'kernel_size': 2}))
+
+    enc_layers.append(('avgpool2d', {'kernel_size': (3,3)}))
+
+    enc = EncoderCNN(enc_layers, hparams).to(device)
+    dec = DecoderRNN(tokens, token_to_idx, 512, 512).to(device)
+
+    model = EncoderDecoder(enc, dec).to(device)
+
+    state_dict = torch.load(model_path, map_location=torch.device(device))
+    torch.save((state_dict), model_backup_path)
+    model.load_state_dict(state_dict)
+    model.train()
+    print(f"LOADED MODEL to {device}")
+
+    return model
 
 def remove_trailing_pads(labels):
    # Clip trailing PAD on labels
@@ -35,7 +66,7 @@ def remove_trailing_pads(labels):
    return labels[:, :len(non_pad_cols)]
 
 
-def train_model(model, criterion, optimizer, loader, frozen_optim = None, teacher_enforcing = False):
+def train_model(model, criterion, optimizer, loader, frozen_optim = None, fifty_fifty = False, teacher_enforcing = False):
     prev_loss = 100
     for epoch in range(100):
         curr_loss = 0
@@ -47,7 +78,7 @@ def train_model(model, criterion, optimizer, loader, frozen_optim = None, teache
             
             labels = remove_trailing_pads(labels)
             
-            if not teacher_enforcing:
+            if fifty_fifty and batch %2 == 0 or teacher_enforcing:
                 context_vec = model.encoder(images).squeeze()
 
                 output = torch.zeros((labels.shape[0], labels.shape[1]-1, len(tokens))).to(device)

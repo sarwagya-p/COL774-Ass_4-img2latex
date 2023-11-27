@@ -66,10 +66,10 @@ formula_dir = "../data/SyntheticData/train.csv"
 
 dataset = Img2LatexDataset(img_dir, formula_dir)
 
-import pickle
+# import pickle
 
-with open("model/tokens.pkl", "wb") as f:
-    pickle.dump(dataset.tokens, f)
+# with open("./models/tokens.pkl", "wb") as f:
+#     pickle.dump(dataset.tokens, f)
 
-with open("model/token_to_idx.pkl", "wb") as f:
-    pickle.dump(dataset.token_to_idx, f)
+# with open("./models/token_to_idx.pkl", "wb") as f:
+#     pickle.dump(dataset.token_to_idx, f)
