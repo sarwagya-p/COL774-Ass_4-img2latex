@@ -81,14 +81,14 @@ class EncoderDecoder(nn.Module):
         
         self.device = device
         super(EncoderDecoder, self).__init__()
-        self.encoder = encoder
-        self.decoder = decoder
+        self.encoder = encoder.cuda()
+        self.decoder = decoder.cuda()
 
     def forward(self, input):
-        context_vec = self.encoder(input).squeeze()
-        prev_token = torch.tensor([self.decoder.vocab_dict["<sos>"]])
+        context_vec = self.encoder(input).squeeze().to(self.device)
+        prev_token = torch.tensor([self.decoder.vocab_dict["<sos>"]], device=self.device)
 
-        input = torch.cat([context_vec.unsqueeze(0), self.decoder.embedding(prev_token)], dim=1)
+        input = torch.cat([context_vec.unsqueeze(0).to(self.device), self.decoder.embedding(prev_token).to(self.device)], dim=1).to(self.device)
         hidden = None
 
         outputs = []
@@ -101,6 +101,6 @@ class EncoderDecoder(nn.Module):
                 break
             
             outputs.append(self.decoder.vocab[prev_token.item()])
-            input = torch.cat((context_vec.unsqueeze(0), self.decoder.embedding(prev_token)), dim=1)
+            input = torch.cat((context_vec.unsqueeze(0), self.decoder.embedding(prev_token)), dim=1).to(self.device)
 
         return outputs
