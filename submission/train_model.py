@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from EncoderDecoder import EncoderCNN, DecoderRNN, EncoderDecoder
-from data_utils import Img2LatexDataset
+from data_utils import Img2LatexDataset, load_img
 import pickle
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -69,9 +69,9 @@ def remove_trailing_pads(labels):
    return labels[:, :len(non_pad_cols)]
 
 
-def train_model(model, criterion, optimizer, loader, frozen_optim = None, fifty_fifty = False, teacher_enforcing = False):
+def train_model(model, criterion, optimizer, loader, frozen_optim = None, fifty_fifty = False, teacher_enforcing = True, max_epochs = 8):
     prev_loss = 100
-    for epoch in range(100):
+    for epoch in range(max_epochs):
         curr_loss = 0
         for bidx, batch in enumerate(loader):
             print(f"Running Batch {bidx}, Epoch {epoch}")
@@ -128,3 +128,27 @@ def train_model(model, criterion, optimizer, loader, frozen_optim = None, fifty_
                     print("\n Could not write to file \n")
         print(f"AVG LOSS: {(curr_loss)/len(loader)}, Epoch: {epoch+1}")
         prev_loss = curr_loss
+
+def read_and_pred(img_path, model):
+    img = load_img(img_path)
+    pred = model(img)
+
+    return pred
+
+import os
+import pandas as pd
+def run_model(model, dataset_dir):
+
+    hw_dir = os.path.join(dataset_dir, "../sample_sub.csv")
+    sy_dir = os.path.join(dataset_dir, "/SyntheticData/test.csv")
+    hw_img_dir = os.path.join(dataset_dir, "/HandwrittenData/images/test")
+    sy_img_dir = os.path.join(dataset_dir, "/SyntheticData/images/")
+
+    preds_hw = pd.read_csv(hw_dir)
+    preds_sy = pd.read_csv(sy_dir)
+
+    preds_hw["formula"] = preds_hw["image"].apply(lambda x: read_and_pred(os.join(hw_img_dir, x), model))
+    preds_sy["formula"] = preds_sy["image"].apply(lambda x: read_and_pred(os.path.join(sy_img_dir, x), model))
+
+    preds_hw.to_csv("pred1a.csv")
+    preds_sy.to_csv("pred1b.csv")
