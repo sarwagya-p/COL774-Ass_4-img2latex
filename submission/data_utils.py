@@ -20,30 +20,34 @@ def load_img(path, size = (224, 224)):
     return im
 
 class Img2LatexDataset(data.Dataset):
-    def __init__(self, img_dir, formula_path, img_size = (224, 224)):
+    def __init__(self, img_dir, formula_path, img_size = (224, 224), tokens = None, token_to_idx = None):
         self.data_frame = pd.read_csv(formula_path)
         self.img_dir = img_dir
         self.img_size = img_size
 
-        self.token_to_idx = {}
-        self.tokens = []
+        if tokens is None:
+            self.token_to_idx = {}
+            self.tokens = []
 
-        for row in self.data_frame["formula"]:
-            row = row.split()
+            for row in self.data_frame["formula"]:
+                row = row.split()
 
-            for token in row:
-                if token not in self.token_to_idx:
-                    self.token_to_idx[token] = len(self.token_to_idx)
-                    self.tokens.append(token)
-        
-        for special_token in [SOS, EOS, PAD]:
-            self.token_to_idx[special_token] = len(self.token_to_idx)
-            self.tokens.append(special_token)
+                for token in row:
+                    if token not in self.token_to_idx:
+                        self.token_to_idx[token] = len(self.token_to_idx)
+                        self.tokens.append(token)
+            
+            for special_token in [SOS, EOS, PAD]:
+                self.token_to_idx[special_token] = len(self.token_to_idx)
+                self.tokens.append(special_token)
+        else:
+            self.token_to_idx = token_to_idx
+            self.tokens = tokens
 
         max_len = max([len(row.split()) for row in self.data_frame["formula"]])+2
         def indexer(row):
             index_list = [self.token_to_idx[SOS]]
-            index_list.extend([self.token_to_idx[token] for token in row.split()])
+            index_list.extend([self.token_to_idx.get(token, 0) for token in row.split()])
             index_list.append(self.token_to_idx[EOS])
             index_list.extend([self.token_to_idx[PAD]] * (max_len - len(index_list)))
 

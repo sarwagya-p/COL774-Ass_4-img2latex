@@ -18,7 +18,14 @@ if __name__ == "__main__":
     model = load_model("./models/part1a.pt")
     dataset_dir = sys.argv[1]
 
-    preds_hw = pd.read_csv(dataset_dir+"/sample_sub.csv")
-    pred_sy = pd.read_csv(dataset_dir+"/SyntheticData/test.csv")
+    hw_dir = dataset_dir+"/sample_sub.csv"
+    sy_dir = dataset_dir+"/SyntheticData/test.csv"
 
-    preds_hw["formula"] = preds_hw["image"].apply(lambda x: read_and_pred(dataset_dir+"/"+x, model))
+    preds_hw = pd.read_csv(hw_dir)
+    pred_sy = pd.read_csv(sy_dir)
+
+    preds_hw["formula"] = preds_hw["image"].apply(lambda x: read_and_pred(hw_dir+"/"+x, model))
+    preds_hw["formula"] = preds_hw["image"].apply(lambda x: read_and_pred(sy_dir+"/"+x, model))
+
+    preds_hw.to_csv(hw_dir)
+    pred_sy.to_csv(sy_dir)

@@ -11,12 +11,6 @@ print(f"Using device: {device}")
 if device == "cuda":
     torch.cuda.empty_cache()
 
-with open("./models/tokens.pkl", "rb") as f:
-    tokens = pickle.load(f)
-
-with open("./models/token_to_idx.pkl", "rb") as f:
-    token_to_idx = pickle.load(f)
-
 model_path = "./models/model.pt"
 model_backup_path = "./models/model_backup.pt"
 current_params_path = "./models/current_params.txt" 
@@ -25,9 +19,7 @@ PAD = "<pad>"
 SOS = "<sos>"
 EOS = "<eos>"
 
-PAD_IDX = token_to_idx[PAD]
-
-def load_model(model_path):
+def load_model(model_path, eval = True):
     hparams = {
         "lr" : 0.001,
         "batch_size" : 64,
@@ -46,16 +38,26 @@ def load_model(model_path):
     enc_layers.append(('avgpool2d', {'kernel_size': (3,3)}))
 
     enc = EncoderCNN(enc_layers, hparams).to(device)
-    dec = DecoderRNN(tokens, token_to_idx, 512, 512).to(device)
+
+    with open("./models/vocab.pkl", "rb") as f:
+        tokens, tokens_to_idx = pickle.load(f)
+        
+    dec = DecoderRNN(tokens, tokens_to_idx, 512, 512).to(device)
 
     model = EncoderDecoder(enc, dec).to(device)
 
     state_dict = torch.load(model_path, map_location=torch.device(device))
     torch.save((state_dict), model_backup_path)
     model.load_state_dict(state_dict)
-    model.train()
-    print(f"LOADED MODEL to {device}")
 
+    if eval:
+        model.eval()
+    else:
+        model.train()
+        
+    print(f"LOADED MODEL to {device}")
+    global PAD_IDX
+    PAD_IDX = model.decoder.vocab_dict[PAD]
     return model
 
 def remove_trailing_pads(labels):
@@ -81,9 +83,9 @@ def train_model(model, criterion, optimizer, loader, frozen_optim = None, fifty_
             if fifty_fifty and batch %2 == 0 or teacher_enforcing:
                 context_vec = model.encoder(images).squeeze()
 
-                output = torch.zeros((labels.shape[0], labels.shape[1]-1, len(tokens))).to(device)
+                output = torch.zeros((labels.shape[0], labels.shape[1]-1, len(model.decoder.vocab))).to(device)
 
-                prev_token = torch.ones(labels.shape[0], dtype=int).to(device) * token_to_idx[SOS]
+                prev_token = torch.ones(labels.shape[0], dtype=int).to(device) * model.decoder.vocab_dict[SOS]
                 prev_token_embed = model.decoder.embedding(prev_token).to(device)
 
                 input = torch.cat([context_vec, prev_token_embed], dim=1).to(device)
@@ -100,7 +102,7 @@ def train_model(model, criterion, optimizer, loader, frozen_optim = None, fifty_
                 output, _ = model.decoder(inputs, None)
                 output = output[:, :-1, :]
 
-            target = nn.functional.one_hot(labels[:,1:], num_classes=len(tokens)).float().to(device)
+            target = nn.functional.one_hot(labels[:,1:], num_classes=len(model.decoder.vocab)).float().to(device)
             optimizer.zero_grad()
 
             if frozen_optim is not None:

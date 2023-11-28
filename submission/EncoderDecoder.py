@@ -86,28 +86,21 @@ class EncoderDecoder(nn.Module):
 
     def forward(self, input):
         context_vec = self.encoder(input).squeeze()
-        prev_token = torch.ones((input.shape[0]), dtype=int)*self.decoder.vocab_dict['<sos>']
+        prev_token = torch.tensor([self.decoder.vocab_dict["<sos>"]])
 
-        input = torch.cat([context_vec, self.decoder.embedding(prev_token)], dim=1)
+        input = torch.cat([context_vec.unsqueeze(0), self.decoder.embedding(prev_token)], dim=1)
         hidden = None
 
-        outputs = torch.zeros((input.shape[0], 629), dtype=int).to(self.device)
+        outputs = []
 
         for i in range(629):
-            print(f"Predicting token {i+1}/629..")
             output, hidden = self.decoder(input, hidden)
             prev_token = torch.argmax(output, dim=1)
-            outputs[:, i] = prev_token
 
-            input = torch.cat((context_vec, self.decoder.embedding(prev_token)), dim=1)
+            if prev_token.item() == self.decoder.vocab_dict["<eos>"]:
+                break
+            
+            outputs.append(self.decoder.vocab[prev_token.item()])
+            input = torch.cat((context_vec.unsqueeze(0), self.decoder.embedding(prev_token)), dim=1)
 
-        
-        preds = []
-        print(f"Found formula token indexes, converting to tokens..")
-        for i in range(input.shape[0]):
-            pred_tokens = [self.decoder.vocab[tok] for tok in outputs[i, :].tolist()]
-            pred_tokens = pred_tokens[:pred_tokens.index('<eos>')] if '<eos>' in pred_tokens else pred_tokens
-
-            preds.append(' '.join(pred_tokens))
-
-        return preds
+        return outputs
