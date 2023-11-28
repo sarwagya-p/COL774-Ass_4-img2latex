@@ -71,7 +71,6 @@ def remove_trailing_pads(labels):
 
 def train_model(model, criterion, optimizer, loader, frozen_optim = None, 
                 fifty_fifty = False, teacher_enforcing = True, max_epochs = 8, model_path = "./models/model.pt"):
-    prev_loss = 100
     for epoch in range(max_epochs):
         curr_loss = 0
         for bidx, batch in enumerate(loader):
@@ -82,7 +81,7 @@ def train_model(model, criterion, optimizer, loader, frozen_optim = None,
             
             labels = remove_trailing_pads(labels)
             
-            if fifty_fifty and batch %2 == 0 or teacher_enforcing:
+            if (fifty_fifty and batch %2 == 0) or teacher_enforcing:
                 context_vec = model.encoder(images).squeeze()
 
                 output = torch.zeros((labels.shape[0], labels.shape[1]-1, len(model.decoder.vocab))).to(device)
@@ -128,7 +127,6 @@ def train_model(model, criterion, optimizer, loader, frozen_optim = None,
                 except:
                     print("\n Could not write to file \n")
         print(f"AVG LOSS: {(curr_loss)/len(loader)}, Epoch: {epoch+1}")
-        prev_loss = curr_loss
 
 def read_and_pred(img_path, model):
     img = load_img(img_path)
