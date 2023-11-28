@@ -58,6 +58,7 @@ def load_model(model_path, eval = True):
     print(f"LOADED MODEL to {device}")
     global PAD_IDX
     PAD_IDX = model.decoder.vocab_dict[PAD]
+    model.cuda()
     return model
 
 def remove_trailing_pads(labels):
