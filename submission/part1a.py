@@ -50,8 +50,8 @@ if __name__ == "__main__":
     dataset = Img2LatexDataset(train_imgs, train_csv, tokens, token_to_idx)
     loader = DataLoader(dataset, batch_size = hparams["batch_size"], shuffle = True, num_workers = 4)
     
-    train_model(model, criterion, optimizer, loader, max_epochs=2)
-    train_model(model, criterion, optimizer, loader, fifty_fifty=True, max_epochs=4)
-    train_model(model, criterion, optimizer, loader, teacher_enforcing=False, max_epochs=2)
+    train_model(model, criterion, optimizer, loader, max_epochs=2, model_path="./models/part1a.pt")
+    train_model(model, criterion, optimizer, loader, fifty_fifty=True, max_epochs=4, model_path="./models/part1a.pt")
+    train_model(model, criterion, optimizer, loader, teacher_enforcing=False, max_epochs=2, model_path="./models/part1a.pt")
 
     run_model(model, main_dir)

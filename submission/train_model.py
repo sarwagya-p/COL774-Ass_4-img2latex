@@ -69,7 +69,8 @@ def remove_trailing_pads(labels):
    return labels[:, :len(non_pad_cols)]
 
 
-def train_model(model, criterion, optimizer, loader, frozen_optim = None, fifty_fifty = False, teacher_enforcing = True, max_epochs = 8):
+def train_model(model, criterion, optimizer, loader, frozen_optim = None, 
+                fifty_fifty = False, teacher_enforcing = True, max_epochs = 8, model_path = "./models/model.pt"):
     prev_loss = 100
     for epoch in range(max_epochs):
         curr_loss = 0
