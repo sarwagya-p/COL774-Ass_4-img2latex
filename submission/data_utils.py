@@ -57,6 +57,9 @@ class Img2LatexDataset(data.Dataset):
 
     def __getitem__(self, index):
         img = load_img(self.img_dir + self.data_frame["image"][index], self.img_size)
+        if img.shape == (1, 224, 244):
+            img = img.repeat(3, 1, 1)
+            
         return img, torch.tensor(self.data_frame["IndexList"][index], requires_grad=False)
 
     def __len__(self):
