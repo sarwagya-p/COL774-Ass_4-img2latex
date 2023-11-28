@@ -13,8 +13,12 @@ SOS = "<sos>"
 EOS = "<eos>"
 
 def load_img(path, size = (224, 224)):
-    img = (Image.open(path))
-    transform = transforms.Compose([transforms.Resize(size, antialias=True), transforms.ToTensor(), transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
+    img = transforms.ToTensor()(Image.open(path))
+
+    if img.shape[0] == 1:
+        img = img.repeat(3, 1, 1)
+
+    transform = transforms.Compose([transforms.Resize(size, antialias=True), transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
     im = transform(img).detach()
     im = 1 - im
     return im
@@ -59,7 +63,7 @@ class Img2LatexDataset(data.Dataset):
         img = load_img(self.img_dir + self.data_frame["image"][index], self.img_size)
         if img.shape == (1, 224, 244):
             img = img.repeat(3, 1, 1)
-            
+
         return img, torch.tensor(self.data_frame["IndexList"][index], requires_grad=False)
 
     def __len__(self):
